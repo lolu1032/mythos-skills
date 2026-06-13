@@ -9,12 +9,18 @@ export const meta = {
   ],
 }
 
-const task = args?.task ?? 'Implement a token-bucket rate limiter in pure Python 3 (standard library only). API: RateLimiter(capacity:int, refill_rate_per_sec:float) with method allow(now:float, tokens:int=1)->bool that consumes tokens if available at time now and returns True, else returns False without consuming. Tokens refill continuously at refill_rate_per_sec up to capacity. now is monotonic non-decreasing across calls.'
-const workdir = args?.workdir ?? '/tmp/mythos-demo'
-const lang = args?.lang ?? 'pure Python 3 (standard library only); put the test file as test_limiter.py runnable with `python3 -m unittest`'
-const N = args?.variants ?? 3
-const V = args?.verifiers ?? 2
-const crossVerify = args?.crossModelVerify ?? false // true => Codex/GPT-5.5 does the adversarial check
+// NOTE: the Workflow tool delivers `args` as a JSON STRING (not a parsed object).
+// Parse defensively so this works whether args is a string, an object, or absent.
+let A = {}
+if (typeof args === 'string') { try { A = args ? JSON.parse(args) : {} } catch (e) { A = {} } }
+else if (args && typeof args === 'object') { A = args }
+
+const task = A.task ?? 'Implement a token-bucket rate limiter in pure Python 3 (standard library only). API: RateLimiter(capacity:int, refill_rate_per_sec:float) with method allow(now:float, tokens:int=1)->bool that consumes tokens if available at time now and returns True, else returns False without consuming. Tokens refill continuously at refill_rate_per_sec up to capacity. now is monotonic non-decreasing across calls.'
+const workdir = A.workdir ?? '/tmp/mythos-demo'
+const lang = A.lang ?? 'pure Python 3 (standard library only); put the test file as test_limiter.py runnable with `python3 -m unittest`'
+const N = A.variants ?? 3
+const V = A.verifiers ?? 2
+const crossVerify = A.crossModelVerify ?? false // true => Codex/GPT-5.5 does the adversarial check
 
 const PLAN_SCHEMA = {
   type: 'object',
