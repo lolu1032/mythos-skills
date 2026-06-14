@@ -99,7 +99,7 @@ Claude collects the parameters (`task`, `workdir`, `lang` + test command, `varia
 There's no model change — it's orchestration, yes. The non-trivial part is the *adversarial* step: an independent agent (a different model in `pantheon-x`) whose job is to break a build rather than confirm it. That's what catches defects the builder's own green tests rubber-stamp. The value is the harness shape, not a secret prompt.
 
 **Do you have benchmarks vs. plain Opus?**
-No formal benchmark yet — treat the description as *mechanism*, not a measured delta. The honest evidence is anecdotal: on a real CMS codebase it surfaced a timezone-dependent scheduling bug that passed the implementation's own tests. If you run a head-to-head, I'd genuinely like to see the numbers.
+No formal benchmark yet — treat the description as *mechanism*, not a measured delta. The value is in the adversarial step: a build can pass its own tests and still be wrong, and an independent reviewer catches what the self-written tests rubber-stamp. If you run a head-to-head, I'd genuinely like to see the numbers.
 
 **What does a run cost?**
 A few hundred K to ~1M tokens and ~6–10 min at default settings; more for `variants=5` / `verifiers=3` / cross-model. It's meant for the hardest 10–20% of tasks, not everyday edits. See [Cost & scope](#cost--scope).
