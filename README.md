@@ -93,6 +93,27 @@ Claude collects the parameters (`task`, `workdir`, `lang` + test command, `varia
 - This buys *correctness on testable work*, not raw model intelligence. If a task isn't expressible as tests, the adversarial layer has little to grip and the overhead isn't worth it.
 - Coding/agentic productivity only. **Not** a tool for bypassing safety gates (cybersecurity/biology capability restrictions).
 
+## FAQ
+
+**Isn't this just a prompt wrapper?**
+There's no model change — it's orchestration, yes. The non-trivial part is the *adversarial* step: an independent agent (a different model in `mythos-x`) whose job is to break a build rather than confirm it. That's what catches defects the builder's own green tests rubber-stamp. The value is the harness shape, not a secret prompt.
+
+**Do you have benchmarks vs. plain Opus?**
+No formal benchmark yet — treat the description as *mechanism*, not a measured delta. The honest evidence is anecdotal: on a real CMS codebase it surfaced a timezone-dependent scheduling bug that passed the implementation's own tests. If you run a head-to-head, I'd genuinely like to see the numbers.
+
+**What does a run cost?**
+A few hundred K to ~1M tokens and ~6–10 min at default settings; more for `variants=5` / `verifiers=3` / cross-model. It's meant for the hardest 10–20% of tasks, not everyday edits. See [Cost & scope](#cost--scope).
+
+**It says "Workflow tool not found" / nothing happens.**
+You're likely on the Free tier, or haven't enabled workflows. See [Requirements](#requirements) — needs a paid plan and, on Pro, `/config` → **Dynamic workflows**.
+
+**Why route verification to GPT-5.5 / another vendor's model?**
+Same-model verifiers share blind spots — a mistake the builder makes, a same-model reviewer tends to miss too. A *different* model is a cheap way to break that correlation. It's optional: `mythos` runs Claude-on-Claude and still helps.
+
+## Status
+
+Solo project, **as-is, best-effort**. Issues and PRs are welcome, but maintenance comes with no guarantees or SLA — I may not get to everything. It's MIT-licensed, so forking is a first-class option if you want to take it further.
+
 ## License
 
 [MIT](./LICENSE)

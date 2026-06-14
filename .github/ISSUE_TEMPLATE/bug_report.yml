@@ -1,0 +1,56 @@
+name: Bug / "it doesn't work"
+description: The skill errors, doesn't run, or behaves wrong
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Most "nothing happens" reports are environment, not bugs. Please skim
+        [Requirements](https://github.com/lolu1032/mythos-skills#requirements) and
+        [FAQ](https://github.com/lolu1032/mythos-skills#faq) first — **Free tier** and a
+        **missing Codex plugin** are the usual causes.
+  - type: dropdown
+    id: skill
+    attributes:
+      label: Which skill?
+      options:
+        - mythos
+        - mythos-x
+    validations:
+      required: true
+  - type: input
+    id: cc-version
+    attributes:
+      label: Claude Code version
+      description: "`claude --version` — must be >= 2.1.154"
+      placeholder: "e.g. 2.1.160"
+    validations:
+      required: true
+  - type: dropdown
+    id: plan
+    attributes:
+      label: Plan
+      description: Workflows require a paid plan (not Free)
+      options:
+        - Pro
+        - Max
+        - Team
+        - Enterprise
+        - API (Bedrock/Vertex/Foundry)
+        - Free
+    validations:
+      required: true
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight (check the FAQ first)
+      options:
+        - label: "On Pro, I enabled `/config` → Dynamic workflows"
+        - label: "For mythos-x: the `codex:codex-rescue` agent type is installed (Codex plugin) — not just a `codex` CLI login"
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The task you gave, what you expected, what you got. Paste the error or the workflow summary.
+    validations:
+      required: true

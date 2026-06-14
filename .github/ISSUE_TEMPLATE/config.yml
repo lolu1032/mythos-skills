@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Requirements & FAQ (read first)
+    url: https://github.com/lolu1032/mythos-skills#requirements
+    about: "\"Nothing happens\" is almost always Free tier or a missing Codex plugin — check here before filing."
