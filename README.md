@@ -24,12 +24,27 @@ The value: a build can pass its *own* tests yet still be wrong. The adversarial 
 
 | Skill | Adversarial verifier | Requirements |
 |-------|----------------------|--------------|
-| **`mythos`** | Claude itself (independent agents) | Claude Code only |
-| **`mythos-x`** | **GPT-5.5 via Codex CLI** (cross-model) | Claude Code + Codex CLI login |
+| **`mythos`** | Claude itself (independent agents) | Paid Claude Code plan + Workflows (see below) |
+| **`mythos-x`** | **GPT-5.5 via Codex plugin** (cross-model) | Above **+** OpenAI Codex plugin (`codex:codex-rescue`) |
 
 `mythos-x` is the stronger setting: the implementation written by Claude is attacked by a *different* model, which shrinks single-model blind spots (the same mistake slipping past a same-model verifier). If you don't have Codex/GPT-5.5, use `mythos`.
 
 Both skills share the same harness (`mythos-class.js`); they differ only in the `crossModelVerify` flag.
+
+## Requirements
+
+These skills drive Claude Code's **Workflow** orchestration engine, so a stock/Free setup is not enough:
+
+- **Claude Code ≥ v2.1.154** on a **paid plan** — Pro, Max, Team, or Enterprise (also Bedrock / Vertex / Foundry). **Not available on the Free tier.**
+- On **Pro**, enable it once: `/config` → turn on **Dynamic workflows**.
+- **`mythos-x` only:** the cross-model verifier runs as the `codex:codex-rescue` subagent, which ships in OpenAI's **Codex plugin** — *not* stock Claude Code. A logged-in `codex` CLI alone does **not** register it. Install the plugin:
+  ```
+  /plugin marketplace add openai/codex-plugin-cc
+  /plugin install codex@openai-codex
+  ```
+  plus a ChatGPT subscription (or `OPENAI_API_KEY`) and the `codex` CLI on PATH. **If `codex:codex-rescue` isn't installed, use `mythos` instead** — `mythos-x` would otherwise silently skip the adversarial pass and pass every build.
+
+Skills and subagents themselves are stock Claude Code features; no extra setup beyond the above.
 
 ## Install
 

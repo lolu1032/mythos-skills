@@ -14,15 +14,21 @@ description: >-
 `mythos` 기본판과 동일한 `plan → 병렬 변형 → 테스트 자기수정 → 적대 검증 → 합성` 파이프라인이되, **적대 검증 단계를 GPT-5.5(Codex)** 가 맡는다(`agentType: 'codex:codex-rescue'`). Opus가 짠 구현을 *다른 모델*이 깨려 들기 때문에, 한 모델의 사각지대(같은 실수를 검증자도 못 봄)를 줄인다 — 가장 강한 설정.
 
 ## 전제 조건
-- **Codex CLI가 로그인돼 있어야 한다** (GPT-5.5 접근). 헤드리스 서버면 `codex login --device-auth`.
-- Codex/GPT-5.5가 없으면 **`mythos` 기본판을 쓸 것** (Claude 자체 적대 검증).
+- **기본판과 동일하게 Workflow 오케스트레이션이 필요하다** — 유료 플랜(Pro/Max/Team/Enterprise, v2.1.154+), Pro는 `/config`에서 Dynamic workflows 켜기. Free 불가.
+- **`codex:codex-rescue` 에이전트 타입이 설치돼 있어야 한다.** 이건 OpenAI **Codex 플러그인**이 등록하는 서브에이전트로, 기본 Claude Code엔 없다. `codex` CLI 로그인만으론 안 생긴다:
+  ```
+  /plugin marketplace add openai/codex-plugin-cc
+  /plugin install codex@openai-codex
+  ```
+  여기에 ChatGPT 구독(또는 `OPENAI_API_KEY`) + PATH의 `codex` CLI가 필요하다. 헤드리스 서버면 `codex login --device-auth`.
+- **`codex:codex-rescue`가 없으면 절대 `crossModelVerify:true`로 돌리지 마라.** 그 경우 적대 검증 호출이 전부 비어(null) 반박이 0이 되고 **모든 빌드가 "통과"로 살아남는다** — 검증한 척만 하는 위험한 결과. 이럴 땐 `mythos` 기본판(Claude 자체 적대 검증)으로 폴백할 것.
 
 ## 언제 쓰나
 - 어려운 구현/리팩터/마이그레이션 중에서도 **틀리면 비싼** 것 — 결제, 동시성, 마이그레이션 등. 교차모델 검증값이 큰 경우.
 - 쉬운 단발 질문·사소한 수정엔 쓰지 말 것. 기본판보다도 토큰·시간이 더 든다(Codex 왕복 포함).
 
 ## 실행 절차 (이 스킬이 트리거되면)
-1. **Codex 가용성 확인.** `codex` CLI가 로그인돼 있는지 가볍게 확인하고, 없으면 사용자에게 알린 뒤 `mythos` 기본판으로 전환을 제안하라.
+1. **교차검증 가용성 확인.** `codex:codex-rescue` 에이전트 타입이 실제로 설치돼 있는지 확인하라(`/agents` 목록 또는 Codex 플러그인 설치 여부). `codex` CLI 로그인뿐 아니라 *이 에이전트 타입의 존재*가 핵심이다 — 없는 채로 강행하면 적대 검증이 조용히 비활성화되어 모든 빌드가 통과한다. 없으면 사용자에게 알리고 `mythos` 기본판(Claude 자체 적대 검증)으로 전환을 제안하라.
 2. **태스크 확정.** 사용자 메시지에서 구현 요구사항을 뽑아라. 불명확하면 1~2개만 짧게 물어라 — *정답을 정의하는 테스트가 무엇인지*가 핵심.
 3. **환경 파라미터 결정:**
    - `task`: 한 문단짜리 정확한 요구사항 + 받아들임 기준(테스트로 표현 가능하게).
