@@ -1,8 +1,8 @@
 # mythos-skills
 
-Claude Code skills that wrap **Claude Opus 4.8** in a *Mythos-class* multi-agent coding harness — recovering much of the long-horizon autonomy and correctness of a higher-tier model **without changing the model itself**.
+Two Claude Code skills that run a hard coding task through a multi-agent harness instead of a single model pass: **plan → N parallel implementations → adversarial verification → judge**. The point isn't a smarter model — it's that a second (and third) implementation, plus an independent reviewer whose job is to *break* the result, catches bugs a single pass ships green.
 
-> You can't upgrade a model's weights from the client side. But Opus's gap to a Mythos-class model lives mostly in *scaffolding* — long-horizon autonomy, turn efficiency, self-checking. That part is closable with orchestration, and that's what these skills do.
+It's a packaging of well-worn techniques — best-of-N sampling, tool-integrated self-correction, and LLM-as-judge / adversarial verification — wired into one `/mythos` command so you don't reassemble them by hand each time. This is scaffolding *around* the model, not a change *to* it: it won't rescue a task the model fundamentally can't reason about, but it reliably tightens correctness on coding work whose answer you can express as tests.
 
 The harness runs a deterministic pipeline:
 
@@ -89,7 +89,8 @@ Claude collects the parameters (`task`, `workdir`, `lang` + test command, `varia
 ## Cost & scope
 
 - **Not a daemon.** Each invocation runs once to completion and exits — zero cost when idle.
-- A run spends real tokens (a demo run: ~11 agents, ~350k subagent tokens, ~6–7 min). Route only the hardest 10–20% of tasks through it; use plain Opus for the rest.
+- A run spends real tokens. A representative run is ~11 subagents and a few hundred K to ~1M tokens end-to-end, ~6–10 min wall-clock; heavier settings (`variants=5`, `verifiers=3`, cross-model) cost more. On Pro/Max it draws from your usage quota; on metered API access, budget a few dollars per run and up. **Route only the hardest 10–20% of tasks here** — use plain Opus for the rest.
+- This buys *correctness on testable work*, not raw model intelligence. If a task isn't expressible as tests, the adversarial layer has little to grip and the overhead isn't worth it.
 - Coding/agentic productivity only. **Not** a tool for bypassing safety gates (cybersecurity/biology capability restrictions).
 
 ## License
