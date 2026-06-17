@@ -1,6 +1,6 @@
 # pantheon-skills
 
-Two Claude Code skills that run a hard coding task through a multi-agent harness instead of a single model pass: **plan → N parallel implementations → adversarial verification → judge**. The point isn't a smarter model — it's that a second (and third) implementation, plus an independent reviewer whose job is to *break* the result, catches bugs a single pass ships green. A third skill, **`pantheon-gap`**, turns the same shape into a reviewer: it points the harness at an *existing* project and reports what's missing.
+Two Claude Code skills that run a hard coding task through a multi-agent harness instead of a single model pass: **plan → N parallel implementations → adversarial verification → judge**. The point isn't a smarter model — it's that a second (and third) implementation, plus an independent reviewer whose job is to *break* the result, catches bugs a single pass ships green. A second pair — **`pantheon-gap`** and its cross-model twin **`pantheon-gap-x`** — turns the same shape into a reviewer: it points the harness at an *existing* project and reports what's missing.
 
 It's a packaging of well-worn techniques — best-of-N sampling, tool-integrated self-correction, and LLM-as-judge / adversarial verification — wired into one `/pantheon` command so you don't reassemble them by hand each time. This is scaffolding *around* the model, not a change *to* it: it won't rescue a task the model fundamentally can't reason about, but it reliably tightens correctness on coding work whose answer you can express as tests.
 
@@ -31,7 +31,7 @@ The value: a build can pass its *own* tests yet still be wrong. The adversarial 
 
 Both skills share the same harness (`pantheon-class.js`); they differ only in the `crossModelVerify` flag.
 
-## The review twin (`pantheon-gap`)
+## The review twins (`pantheon-gap` / `pantheon-gap-x`)
 
 `pantheon` and `pantheon-x` *generate* code. **`pantheon-gap`** runs the same multi-agent shape in the other direction — at an existing project — to answer "what's missing?":
 
@@ -49,7 +49,14 @@ Map ──▶ Probe (×N dimensions) ──▶ Confirm (adversarial) ──▶ S
 - **Confirm** — the same adversarial trick, inverted: reviewers try to *dismiss* each finding, so the false positives a single-pass review sprays get dropped.
 - **Synthesize** — a judge dedups and prioritizes: top gaps, quick wins, and the single highest-leverage fix.
 
-It **reports** gaps; it does not fix them — hand the report to `pantheon` (or plain Opus) to act on. Set `crossModelVerify: true` to run the confirm step on GPT-5.5 (Codex), as with `pantheon-x`.
+It **reports** gaps; it does not fix them — hand the report to `pantheon` (or plain Opus) to act on.
+
+| Skill | Adversarial confirm | Requirements |
+|-------|---------------------|--------------|
+| **`pantheon-gap`** | Claude (skeptical agents) | Paid Claude Code plan + Workflows |
+| **`pantheon-gap-x`** | **GPT-5.5 via Codex plugin** (cross-model) | Above **+** OpenAI Codex plugin (`codex:codex-rescue`) |
+
+`pantheon-gap-x` is the review-side equivalent of `pantheon-x`: a *different* model judges each finding, so it strips the Claude probe's "I found a gap" confirmation bias harder. The two share the same harness (`pantheon-gap-class.js`); they differ only in the `crossModelVerify` flag. If you don't have Codex/GPT-5.5, use `pantheon-gap`.
 
 ## Requirements
 
@@ -57,12 +64,12 @@ These skills drive Claude Code's **Workflow** orchestration engine, so a stock/F
 
 - **Claude Code ≥ v2.1.154** on a **paid plan** — Pro, Max, Team, or Enterprise (also Bedrock / Vertex / Foundry). **Not available on the Free tier.**
 - On **Pro**, enable it once: `/config` → turn on **Dynamic workflows**.
-- **`pantheon-x` only:** the cross-model verifier runs as the `codex:codex-rescue` subagent, which ships in OpenAI's **Codex plugin** — *not* stock Claude Code. A logged-in `codex` CLI alone does **not** register it. Install the plugin:
+- **`pantheon-x` / `pantheon-gap-x` only:** the cross-model verifier/confirmer runs as the `codex:codex-rescue` subagent, which ships in OpenAI's **Codex plugin** — *not* stock Claude Code. A logged-in `codex` CLI alone does **not** register it. Install the plugin:
   ```
   /plugin marketplace add openai/codex-plugin-cc
   /plugin install codex@openai-codex
   ```
-  plus a ChatGPT subscription (or `OPENAI_API_KEY`) and the `codex` CLI on PATH. **If `codex:codex-rescue` isn't installed, use `pantheon` instead** — `pantheon-x` would otherwise silently skip the adversarial pass and pass every build.
+  plus a ChatGPT subscription (or `OPENAI_API_KEY`) and the `codex` CLI on PATH. **If `codex:codex-rescue` isn't installed, use `pantheon` / `pantheon-gap` instead** — the cross-model variants would otherwise silently skip the adversarial pass and rubber-stamp everything.
 
 Skills and subagents themselves are stock Claude Code features; no extra setup beyond the above.
 
@@ -75,6 +82,7 @@ git clone https://github.com/lolu1032/pantheon-skills.git
 cp -R pantheon-skills/pantheon       ~/.claude/skills/pantheon
 cp -R pantheon-skills/pantheon-x     ~/.claude/skills/pantheon-x
 cp -R pantheon-skills/pantheon-gap   ~/.claude/skills/pantheon-gap
+cp -R pantheon-skills/pantheon-gap-x ~/.claude/skills/pantheon-gap-x
 ```
 
 Or for a single project, copy into `<project>/.claude/skills/`.
@@ -86,7 +94,8 @@ In Claude Code:
 ```
 /pantheon     <a hard implementation task whose correctness is testable>
 /pantheon-x   <same, but GPT-5.5 does the adversarial verification>
-/pantheon-gap <path to an existing project>   # gap analysis / feedback review, not generation
+/pantheon-gap   <path to an existing project>   # gap analysis / feedback review, not generation
+/pantheon-gap-x <same, but GPT-5.5 (Codex) does the adversarial confirm>
 ```
 
 Example:
