@@ -1,0 +1,42 @@
+{
+  "_comment": "Verifier-model catalog for pantheon-custom / pantheon-gap-custom, modeled on OpenClaw (docs.openclaw.ai/concepts/model-providers). Used by /pantheon-model for the picker menu, and the chosen provider's routing block is copied into ~/.pantheon/config.json so the *-custom skills route it through `codex exec`. Each cloud entry: baseUrl + envKey (the NAME of the API-key env var, NO secret) + wire (chat=OpenAI-compatible, responses=OpenAI Responses, anthropic=Anthropic Messages) + models (menu hints). `special` entries (claude/codex/local) are handled natively. Pick a model as OpenClaw-style `provider/model-id`. Base URLs are best-effort — verify/fix per provider; THIS FILE is the single place to add or correct a model. OpenAI-compatible (wire=chat) providers route cleanly through codex; Anthropic-native ones route best via a codex `profile:`.",
+  "format": "provider/model-id",
+  "providers": {
+    "anthropic": { "special": "claude", "label": "Anthropic Claude", "models": ["opus", "sonnet", "haiku"] },
+    "openai": { "special": "codex", "label": "OpenAI GPT (via Codex plugin)", "envKey": "OPENAI_API_KEY", "models": ["gpt-5.5", "gpt-5-codex", "gpt-5-mini"] },
+    "ollama": { "special": "local", "label": "Ollama (local, no key)", "models": [] },
+    "lmstudio": { "special": "local", "label": "LM Studio (local)", "models": [] },
+
+    "deepseek": { "baseUrl": "https://api.deepseek.com", "envKey": "DEEPSEEK_API_KEY", "wire": "chat", "label": "DeepSeek", "models": ["deepseek-chat", "deepseek-reasoner"] },
+    "openrouter": { "baseUrl": "https://openrouter.ai/api/v1", "envKey": "OPENROUTER_API_KEY", "wire": "chat", "label": "OpenRouter (proxy to ~hundreds)", "models": ["auto", "qwen/qwen-2.5-coder-32b-instruct", "deepseek/deepseek-chat", "google/gemini-2.5-pro"] },
+    "google": { "baseUrl": "https://generativelanguage.googleapis.com/v1beta/openai", "envKey": "GEMINI_API_KEY", "wire": "chat", "label": "Google Gemini (OpenAI-compat)", "models": ["gemini-2.5-pro", "gemini-2.5-flash"] },
+    "xai": { "baseUrl": "https://api.x.ai/v1", "envKey": "XAI_API_KEY", "wire": "chat", "label": "xAI Grok", "models": ["grok-4", "grok-4-fast", "grok-code-fast-1"] },
+    "mistral": { "baseUrl": "https://api.mistral.ai/v1", "envKey": "MISTRAL_API_KEY", "wire": "chat", "label": "Mistral", "models": ["mistral-large-latest", "codestral-latest"] },
+    "groq": { "baseUrl": "https://api.groq.com/openai/v1", "envKey": "GROQ_API_KEY", "wire": "chat", "label": "Groq (very fast)", "models": ["llama-3.3-70b-versatile", "qwen-2.5-coder-32b", "moonshotai/kimi-k2-instruct"] },
+    "together": { "baseUrl": "https://api.together.xyz/v1", "envKey": "TOGETHER_API_KEY", "wire": "chat", "label": "Together AI", "models": ["Qwen/Qwen2.5-Coder-32B-Instruct", "deepseek-ai/DeepSeek-V3", "meta-llama/Llama-3.3-70B-Instruct-Turbo"] },
+    "moonshot": { "baseUrl": "https://api.moonshot.ai/v1", "envKey": "MOONSHOT_API_KEY", "wire": "chat", "label": "Moonshot Kimi", "models": ["kimi-k2-0711-preview", "moonshot-v1-32k"] },
+    "dashscope": { "baseUrl": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1", "envKey": "DASHSCOPE_API_KEY", "wire": "chat", "label": "Qwen (Alibaba DashScope)", "models": ["qwen-max", "qwen2.5-coder-32b-instruct", "qwen3-coder-plus"] },
+    "zai": { "baseUrl": "https://api.z.ai/api/paas/v4", "envKey": "ZAI_API_KEY", "wire": "chat", "label": "Z.AI GLM", "models": ["glm-4.6", "glm-4.5-air"] },
+    "minimax": { "baseUrl": "https://api.minimax.io/v1", "envKey": "MINIMAX_API_KEY", "wire": "chat", "label": "MiniMax", "models": ["MiniMax-M2", "abab6.5s-chat"] },
+    "cohere": { "baseUrl": "https://api.cohere.ai/compatibility/v1", "envKey": "COHERE_API_KEY", "wire": "chat", "label": "Cohere", "models": ["command-a-03-2025", "command-r-plus"] },
+    "perplexity": { "baseUrl": "https://api.perplexity.ai", "envKey": "PERPLEXITY_API_KEY", "wire": "chat", "label": "Perplexity", "models": ["sonar-pro", "sonar-reasoning-pro"] },
+    "fireworks": { "baseUrl": "https://api.fireworks.ai/inference/v1", "envKey": "FIREWORKS_API_KEY", "wire": "chat", "label": "Fireworks AI", "models": ["accounts/fireworks/models/qwen2p5-coder-32b-instruct", "accounts/fireworks/models/deepseek-v3"] },
+    "cerebras": { "baseUrl": "https://api.cerebras.ai/v1", "envKey": "CEREBRAS_API_KEY", "wire": "chat", "label": "Cerebras (very fast)", "models": ["llama-3.3-70b", "qwen-3-coder-480b"] },
+    "deepinfra": { "baseUrl": "https://api.deepinfra.com/v1/openai", "envKey": "DEEPINFRA_API_KEY", "wire": "chat", "label": "DeepInfra", "models": ["Qwen/Qwen2.5-Coder-32B-Instruct", "deepseek-ai/DeepSeek-V3"] },
+    "siliconflow": { "baseUrl": "https://api.siliconflow.cn/v1", "envKey": "SILICONFLOW_API_KEY", "wire": "chat", "label": "SiliconFlow", "models": ["deepseek-ai/DeepSeek-V3", "Qwen/Qwen2.5-Coder-32B-Instruct"] },
+    "hyperbolic": { "baseUrl": "https://api.hyperbolic.xyz/v1", "envKey": "HYPERBOLIC_API_KEY", "wire": "chat", "label": "Hyperbolic", "models": ["Qwen/Qwen2.5-Coder-32B-Instruct", "deepseek-ai/DeepSeek-V3"] },
+    "nebius": { "baseUrl": "https://api.studio.nebius.com/v1", "envKey": "NEBIUS_API_KEY", "wire": "chat", "label": "Nebius AI Studio", "models": ["Qwen/Qwen2.5-Coder-32B-Instruct", "deepseek-ai/DeepSeek-V3"] },
+    "sambanova": { "baseUrl": "https://api.sambanova.ai/v1", "envKey": "SAMBANOVA_API_KEY", "wire": "chat", "label": "SambaNova", "models": ["Meta-Llama-3.3-70B-Instruct", "Qwen2.5-Coder-32B-Instruct"] },
+    "nvidia": { "baseUrl": "https://integrate.api.nvidia.com/v1", "envKey": "NVIDIA_API_KEY", "wire": "chat", "label": "NVIDIA NIM", "models": ["qwen/qwen2.5-coder-32b-instruct", "deepseek-ai/deepseek-r1"] },
+    "novita": { "baseUrl": "https://api.novita.ai/v3/openai", "envKey": "NOVITA_API_KEY", "wire": "chat", "label": "Novita AI", "models": ["deepseek/deepseek-v3-0324", "qwen/qwen-2.5-coder-32b-instruct"] },
+    "baseten": { "baseUrl": "https://inference.baseten.co/v1", "envKey": "BASETEN_API_KEY", "wire": "chat", "label": "Baseten", "models": ["deepseek-ai/DeepSeek-V3"] },
+    "huggingface": { "baseUrl": "https://router.huggingface.co/v1", "envKey": "HF_TOKEN", "wire": "chat", "label": "Hugging Face Router", "models": ["deepseek-ai/DeepSeek-R1", "Qwen/Qwen2.5-Coder-32B-Instruct"] },
+    "ollama-cloud": { "baseUrl": "https://ollama.com/v1", "envKey": "OLLAMA_API_KEY", "wire": "chat", "label": "Ollama Cloud", "models": ["kimi-k2", "qwen3-coder:480b"] },
+    "venice": { "baseUrl": "https://api.venice.ai/api/v1", "envKey": "VENICE_API_KEY", "wire": "chat", "label": "Venice (private)", "models": ["qwen-2.5-coder-32b", "deepseek-r1-671b"] },
+    "volcengine": { "baseUrl": "https://ark.cn-beijing.volces.com/api/v3", "envKey": "ARK_API_KEY", "wire": "chat", "label": "Volcengine (ByteDance ARK)", "models": ["doubao-seed-1-6", "deepseek-v3"] },
+
+    "vllm": { "baseUrl": "http://127.0.0.1:8000/v1", "envKey": "VLLM_API_KEY", "wire": "chat", "label": "vLLM (local/self-hosted)", "models": [] },
+    "sglang": { "baseUrl": "http://127.0.0.1:30000/v1", "envKey": "SGLANG_API_KEY", "wire": "chat", "label": "SGLang (local/self-hosted)", "models": [] }
+  },
+  "aliases": { "qwen": "dashscope", "kimi": "moonshot", "grok": "xai", "gemini": "google", "glm": "zai", "claude": "anthropic", "gpt": "openai" }
+}
