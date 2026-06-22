@@ -1,6 +1,6 @@
 # pantheon-skills
 
-Claude Code skills that run a hard coding task through a multi-agent harness instead of a single model pass: **plan → N parallel implementations → adversarial verification → judge**. The point isn't a smarter model — it's that a second (and third) implementation, plus an independent reviewer whose job is to *break* the result, catches bugs a single pass ships green. A second pair — **`pantheon-gap`** and its cross-model twin **`pantheon-gap-x`** — turns the same shape into a reviewer: it points the harness at an *existing* project and reports what's missing. Each side also has a **configurable** variant — **`pantheon-custom`** / **`pantheon-gap-custom`** — that lets you pick which model runs the adversarial step — a Claude tier, GPT-5.5, or a cross-vendor/local model (DeepSeek, Qwen, Kimi, a local Ollama model …) routed through the `codex` CLI.
+Claude Code skills that run a hard coding task through a multi-agent harness instead of a single model pass: **plan → N parallel implementations → adversarial verification → judge**. The point isn't a smarter model — it's that a second (and third) implementation, plus an independent reviewer whose job is to *break* the result, catches bugs a single pass ships green. A second pair — **`pantheon-gap`** and its cross-model twin **`pantheon-gap-x`** — turns the same shape into a reviewer: it points the harness at an *existing* project and reports what's missing. Each side also has a **configurable** variant — **`pantheon-custom`** / **`pantheon-gap-custom`** — that lets you pick which model runs the adversarial step — a Claude tier, GPT-5.5, or a cross-vendor/local model (DeepSeek, Qwen, Kimi, a local Ollama model …) routed through the `codex` CLI. A **third** trio — **`pantheon-fix`** (+ `-x` / `-custom`) — closes the loop: it takes a known defect and *applies* a regression-safe patch in an isolated git worktree, diff-only until you approve.
 
 It's a packaging of well-worn techniques — best-of-N sampling, tool-integrated self-correction, and LLM-as-judge / adversarial verification — wired into one `/pantheon` command so you don't reassemble them by hand each time. This is scaffolding *around* the model, not a change *to* it: it won't rescue a task the model fundamentally can't reason about, but it reliably tightens correctness on coding work whose answer you can express as tests.
 
@@ -50,7 +50,7 @@ Map ──▶ Probe (×N dimensions) ──▶ Confirm (adversarial) ──▶ S
 - **Confirm** — the same adversarial trick, inverted: reviewers try to *dismiss* each finding, so the false positives a single-pass review sprays get dropped.
 - **Synthesize** — a judge dedups and prioritizes: top gaps, quick wins, and the single highest-leverage fix.
 
-It **reports** gaps; it does not fix them — hand the report to `pantheon` (or plain Opus) to act on.
+It **reports** gaps; it does not fix them — hand the report to **`pantheon-fix`** (which patches it safely, behind a regression gate; see below) or plain Opus to act on.
 
 | Skill | Adversarial confirm | Requirements |
 |-------|---------------------|--------------|
@@ -60,9 +60,36 @@ It **reports** gaps; it does not fix them — hand the report to `pantheon` (or 
 
 `pantheon-gap-x` is the review-side equivalent of `pantheon-x`: a *different* model judges each finding, so it strips the Claude probe's "I found a gap" confirmation bias harder. The three share the same harness (`pantheon-gap-class.js`); they differ only in which model runs the confirm step — `pantheon-gap` fixes it to Claude, `pantheon-gap-x` to GPT-5.5, and **`pantheon-gap-custom`** lets you choose per run with a `verifier` arg — including a cross-vendor (cloud) or local model — see [Picking the verifier model](#picking-the-verifier-model--pantheon-model); the confirm step is read-only, so it never writes into the reviewed repo. If you don't have a key / Codex / a local model, use `pantheon-gap` (or `pantheon-gap-custom` with a Claude tier).
 
+## The fix skills (`pantheon-fix` / `pantheon-fix-x` / `pantheon-fix-custom`)
+
+`pantheon-gap` *finds* gaps; **`pantheon-fix`** *closes* them. Same multi-agent shape, pointed at a known defect — but it edits real code, so it's wrapped in safety: every candidate fix runs in a throwaway `git worktree`, and the output is a diff you review before applying.
+
+```
+Baseline ──▶ Plan ──▶ Fix (×N parallel) ──▶ Verify (adversarial ×V) ──▶ Synthesize
+ │            │         │ each in its own        │ try to BREAK each      │ judge picks the
+ record       restate   │ git worktree: repro    │ surviving fix          │ smallest, safest
+ HEAD's       the bug,  │ test + minimal fix,    │ (still broken? new      │ patch → emit a
+ green tests  pick N    │ gated: no-regression   │ regression? too broad?) │ diff (apply only
+ (1 baseline) strategies N fixers + repro-green   reviewers                │ if you ask)
+```
+
+- **Baseline** — record the test command and which tests pass at HEAD, so a regression is detectable. Aborts if the target isn't a git repo (worktree isolation needs git).
+- **Plan** — restate the defect, decide whether a test can reproduce it, propose N distinct fix strategies.
+- **Fix** — N fixers in parallel, each in its own worktree: write a failing repro test, apply a *minimal* fix, loop fix→re-run until the repro passes **and** nothing that passed before now fails (regression gate).
+- **Verify** — adversarial reviewers try to break each candidate fix: does the bug still reproduce on a nearby input, did the patch introduce a new regression the suite missed, is the change over-broad?
+- **Synthesize** — a judge picks the smallest, safest surviving patch and emits a diff. **Your working tree is never touched** unless you pass `apply: true` (and even then it's not committed).
+
+| Skill | Adversarial verifier | Requirements |
+|-------|----------------------|--------------|
+| **`pantheon-fix`** | Claude (skeptical agents) | Paid Claude Code plan + Workflows; the target is a git repo |
+| **`pantheon-fix-x`** | **GPT-5.5 via Codex plugin** (cross-model) | Above **+** OpenAI Codex plugin (`codex:codex-rescue`) |
+| **`pantheon-fix-custom`** | **whatever you pass** — `verifier`: a Claude tier, `codex`/GPT-5.5, or an external/local model (`deepseek`, `qwen`, `kimi`, `ollama:<m>`, `profile:<name>` …) | Workflows; pick the model with `/pantheon-model` — **cloud = just an API key** (direct call), local = `codex` CLI + Ollama/LM Studio |
+
+The three share one harness — `pantheon-fix/pantheon-fix-class.js`; `-x` and `-custom` load that *same* file with a different `verifier` (no separate copy, so they can't drift). **One defect per run** keeps each patch minimal and the diff easy to review — for several gaps, run it once each.
+
 ## Picking the verifier model — `/pantheon-model`
 
-The `*-custom` skills don't hard-code the adversarial model — you choose it, OpenClaw-style. Run **`/pantheon-model`** once: it lists the models actually available on your machine, you pick one, it sets up any API key, and it saves the choice to `~/.pantheon/config.json`. After that `pantheon-custom` (generate) and `pantheon-gap-custom` (review) use that model without re-asking; you can still override per run by naming a model inline ("verify with deepseek").
+The `*-custom` skills don't hard-code the adversarial model — you choose it, OpenClaw-style. Run **`/pantheon-model`** once: it lists the models actually available on your machine, you pick one, it sets up any API key, and it saves the choice to `~/.pantheon/config.json`. After that `pantheon-custom` (generate), `pantheon-gap-custom` (review), and `pantheon-fix-custom` (fix) use that model without re-asking; you can still override per run by naming a model inline ("verify with deepseek").
 
 The model id is OpenClaw-style **`provider/model-id`** (`anthropic/haiku`, `ollama/qwen2.5:7b`, `deepseek/deepseek-chat`, `openrouter/qwen/...`). The selectable catalog is **`providers.json`** (shipped inside `pantheon-model/`) — ~27 cloud providers (DeepSeek, OpenRouter, Mistral, Groq, xAI/Grok, Qwen, Gemini, Moonshot/Kimi, Together, NVIDIA, Cohere, Perplexity, Z.AI/GLM, …) plus local Ollama / LM Studio / vLLM / SGLang. To add an OpenAI-compatible provider, edit `pantheon-model/providers.json`; `/pantheon-model` then offers it and copies its routing block into `~/.pantheon/config.json` when you pick it.
 
@@ -114,8 +141,13 @@ cp -R pantheon-skills/pantheon-gap   ~/.claude/skills/pantheon-gap
 cp -R pantheon-skills/pantheon-gap-x ~/.claude/skills/pantheon-gap-x
 cp -R pantheon-skills/pantheon-custom     ~/.claude/skills/pantheon-custom
 cp -R pantheon-skills/pantheon-gap-custom ~/.claude/skills/pantheon-gap-custom
+cp -R pantheon-skills/pantheon-fix        ~/.claude/skills/pantheon-fix
+cp -R pantheon-skills/pantheon-fix-x      ~/.claude/skills/pantheon-fix-x
+cp -R pantheon-skills/pantheon-fix-custom ~/.claude/skills/pantheon-fix-custom
 cp -R pantheon-skills/pantheon-model      ~/.claude/skills/pantheon-model
 ```
+
+(`pantheon-fix-x` / `pantheon-fix-custom` load the shared `pantheon-fix/pantheon-fix-class.js`, so install `pantheon-fix` alongside them.)
 
 Or for a single project, copy into `<project>/.claude/skills/`.
 
@@ -130,6 +162,9 @@ In Claude Code:
 /pantheon-gap   <path to an existing project>   # gap analysis / feedback review, not generation
 /pantheon-gap-x <same, but GPT-5.5 (Codex) does the adversarial confirm>
 /pantheon-gap-custom <same, but YOU pick the confirm model — verifier: deepseek|qwen|kimi|ollama:<m>|opus|sonnet|codex>
+/pantheon-fix        <repo + a defect/gap>   # patch an existing bug safely (worktree-isolated, regression-gated, diff-only)
+/pantheon-fix-x      <same, but GPT-5.5 (Codex) tries to break each fix>
+/pantheon-fix-custom <same, but YOU pick the verifier model — verifier: deepseek|qwen|kimi|ollama:<m>|opus|sonnet|codex>
 /pantheon-model      <pick/configure the verifier model the *-custom skills use (OpenClaw-style setup; handles API keys)>
 ```
 
@@ -140,6 +175,9 @@ Example:
 ```
 ```
 /pantheon-gap Audit /path/to/my-repo — what's missing before launch? Focus on tests and security.
+```
+```
+/pantheon-fix Fix the shutdown deadlock in /path/to/my-repo: Write() holds the mutex across the blocking ptmx.Write, so Close() can never acquire it. Tests: go test ./...
 ```
 
 Claude collects the parameters (`task`, `workdir`, `lang` + test command, `variants`, `verifiers`) and launches the harness as a background Workflow, then reports: per-variant test results, which builds the adversarial pass broke, and the final winner with its rationale and grafting suggestions.
@@ -155,6 +193,10 @@ Claude collects the parameters (`task`, `workdir`, `lang` + test command, `varia
 | `verifiers` | 2 | bump to 3 to be stricter (majority refutation drops a build) |
 | `crossModelVerify` | `false` (`pantheon`) / `true` (`pantheon-x`) | route adversarial verify to GPT-5.5/Codex |
 | `verifier` | `~/.pantheon/config.json` default, else Claude (`*-custom` only) | the adversarial model: a Claude tier (`opus`/`sonnet`/`haiku`/`fable`), `codex`/`gpt` (Codex plugin), or an external/local model via the `codex` CLI — `deepseek`, `qwen`, `kimi`, `ollama:<m>`, `profile:<name>`, or **OpenClaw-style `provider/model-id`** (`ollama/qwen2.5:7b`, `deepseek/deepseek-chat`, `openrouter/qwen/...`). Set a persistent default in `~/.pantheon/config.json`; first run onboards you. |
+| `repo` | — | **`pantheon-fix*` only** — absolute path to the **git** repo to patch (gen/review use `workdir` instead) |
+| `gap` | — | **`pantheon-fix*` only** — the defect to fix: a precise description, or a gap pasted from `pantheon-gap` (one defect per run) |
+| `testCommand` | auto-detected | **`pantheon-fix*` only** — the exact suite command (`pnpm test`, `go test ./...`, …); the Baseline agent detects it if omitted |
+| `apply` | `false` | **`pantheon-fix*` only** — `false` = emit a diff only; `true` = apply the winning patch to the working tree (never committed) |
 
 ## Cost & scope
 
